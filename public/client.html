@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AJAX Registration</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input { margin-bottom: 10px; display: block; padding: 8px; width: 300px; }
+    .message { color: red; margin-bottom: 10px; }
+    .success { color: green; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <h2>Registration Form</h2>
+  <form id="registerForm">
+    <input type="text" id="name" placeholder="Full Name" required />
+    
+    <input type="text" id="college" placeholder="College" list="collegeList" required />
+    <datalist id="collegeList"></datalist>
+
+    <input type="text" id="username" placeholder="Username" required />
+    <div class="message" id="usernameMsg"></div>
+
+    <input type="password" id="password" placeholder="Password" required />
+    <input type="password" id="confirmPassword" placeholder="Confirm Password" required />
+    <div class="message" id="passwordMsg"></div>
+
+    <button type="submit">Register</button>
+  </form>
+
+  <div id="result" class="success" style="display: none;"></div>
+
+  <script>
+    // Load college suggestions
+    function loadCollegeSuggestions() {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", "http://localhost:3000/colleges", true);
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          const colleges = JSON.parse(xhr.responseText);
+          const dataList = document.getElementById("collegeList");
+          colleges.forEach(college => {
+            const option = document.createElement("option");
+            option.value = college;
+            dataList.appendChild(option);
+          });
+        }
+      };
+      xhr.send();
+    }
+
+    // Check if username exists
+    function checkUsername(username) {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "http://localhost:3000/check-username", true);
+      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText);
+          document.getElementById("usernameMsg").textContent = response.exists
+            ? "Username already exists!"
+            : "";
+        }
+      };
+      xhr.send(JSON.stringify({ username }));
+    }
+
+    // Validate password match
+    function validatePasswords() {
+      const pass = document.getElementById("password").value;
+      const confirm = document.getElementById("confirmPassword").value;
+      document.getElementById("passwordMsg").textContent = (pass && confirm && pass !== confirm)
+        ? "Passwords do not match!"
+        : "";
+    }
+
+    // Handle form submission
+    document.getElementById("registerForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      
+      const usernameMsg = document.getElementById("usernameMsg").textContent;
+      const passwordMsg = document.getElementById("passwordMsg").textContent;
+      if (usernameMsg || passwordMsg) return;
+
+      const data = {
+        name: document.getElementById("name").value,
+        college: document.getElementById("college").value,
+        username: document.getElementById("username").value,
+        password: document.getElementById("password").value
+      };
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "http://localhost:3000/register", true);
+      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          const result = document.getElementById("result");
+          result.style.display = "block";
+          result.textContent = "✅ Registered Successfully!";
+          document.getElementById("registerForm").reset();
+          document.getElementById("usernameMsg").textContent = "";
+          document.getElementById("passwordMsg").textContent = "";
+
+          setTimeout(() => {
+            result.style.display = "none";
+          }, 5000);
+        }
+      };
+
+      xhr.send(JSON.stringify(data));
+    });
+
+    document.getElementById("username").addEventListener("input", (e) => {
+      checkUsername(e.target.value.trim());
+    });
+
+    document.getElementById("confirmPassword").addEventListener("input", validatePasswords);
+    document.getElementById("password").addEventListener("input", validatePasswords);
+
+    loadCollegeSuggestions();
+  </script>
+
+</body>
+</html>
